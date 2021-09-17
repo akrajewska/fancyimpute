@@ -25,11 +25,13 @@ class Solver(object):
             fill_method="zero",
             min_value=None,
             max_value=None,
-            normalizer=None):
+            normalizer=None,
+            X_init=None):
         self.fill_method = fill_method
         self.min_value = min_value
         self.max_value = max_value
         self.normalizer = normalizer
+        self.X_init = X_init
 
     def __repr__(self):
         return str(self)
@@ -98,25 +100,30 @@ class Solver(object):
         if not inplace:
             X = X.copy()
 
-        if not fill_method:
-            fill_method = self.fill_method
+        if self.X_init:
+            X = self.X_init.copy()
 
-        if fill_method not in ("zero", "mean", "median", "min", "random"):
-            raise ValueError("Invalid fill method: '%s'" % (fill_method))
-        elif fill_method == "zero":
-            # replace NaN's with 0
-            X[missing_mask] = 0
-        elif fill_method == "mean":
-            self._fill_columns_with_fn(X, missing_mask, np.nanmean)
-        elif fill_method == "median":
-            self._fill_columns_with_fn(X, missing_mask, np.nanmedian)
-        elif fill_method == "min":
-            self._fill_columns_with_fn(X, missing_mask, np.nanmin)
-        elif fill_method == "random":
-            self._fill_columns_with_fn(
-                X,
-                missing_mask,
-                col_fn=generate_random_column_samples)
+        else:
+
+            if not fill_method:
+                fill_method = self.fill_method
+
+                if fill_method not in ("zero", "mean", "median", "min", "random"):
+                    raise ValueError("Invalid fill method: '%s'" % (fill_method))
+                elif fill_method == "zero":
+                    # replace NaN's with 0
+                    X[missing_mask] = 0
+                elif fill_method == "mean":
+                    self._fill_columns_with_fn(X, missing_mask, np.nanmean)
+                elif fill_method == "median":
+                    self._fill_columns_with_fn(X, missing_mask, np.nanmedian)
+                elif fill_method == "min":
+                    self._fill_columns_with_fn(X, missing_mask, np.nanmin)
+                elif fill_method == "random":
+                    self._fill_columns_with_fn(
+                        X,
+                        missing_mask,
+                        col_fn=generate_random_column_samples)
         return X
 
     def prepare_input_data(self, X):
@@ -176,7 +183,10 @@ class Solver(object):
         X = X_original.copy()
         if self.normalizer is not None:
             X = self.normalizer.fit_transform(X)
-        X_filled = self.fill(X, missing_mask, inplace=True)
+        if self.X_init:
+            X_filled = self.X_init.copy()
+        else:
+            X_filled = self.fill(X, missing_mask, inplace=True)
         if not isinstance(X_filled, np.ndarray):
             raise TypeError(
                 "Expected %s.fill() to return NumPy array but got %s" % (

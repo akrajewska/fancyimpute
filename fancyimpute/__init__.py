@@ -5,7 +5,7 @@ from .nuclear_norm_minimization import NuclearNormMinimization
 from .matrix_factorization import MatrixFactorization
 from .iterative_svd import IterativeSVD
 from .simple_fill import SimpleFill
-from .soft_impute import SoftImpute
+from .soft_impute import SoftImpute, SoftImputeWarmStarts
 from .scaler import BiScaler
 from .knn import KNN
 from .similarity_weighted_averaging import SimilarityWeightedAveraging
@@ -23,8 +23,10 @@ __all__ = [
     "IterativeSVD",
     "SimpleFill",
     "SoftImpute",
+    "SoftImputeWarmStarts",
     "BiScaler",
     "KNN",
     "SimilarityWeightedAveraging",
     "IterativeImputer",
+
 ]
