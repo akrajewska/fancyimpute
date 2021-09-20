@@ -9,6 +9,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from dataclasses import dataclass
+from typing import Any
 
 import numpy as np
 from sklearn.utils import check_array
@@ -146,8 +148,7 @@ class SoftImpute(Solver):
         X_filled = self.fill(X, missing_mask, inplace=True)
         return self._max_singular_value(X_filled), missing_mask
 
-    def solve(self, X, missing_mask, trial=None):
-        print(f"trial {trial}")
+    def solve(self, X, missing_mask):
         X = check_array(X, force_all_finite=False)
 
         X_init = X.copy()
@@ -200,33 +201,22 @@ class SoftImpute(Solver):
         return X_filled
 
 
+@dataclass
 class SoftImputeWarmStarts(object):
 
-    def __init__(self,
-                 convergence_threshold=0.001,
-                 max_iters=100,
-                 max_rank=None,
-                 n_power_iterations=1,
-                 init_fill_method="zero",
-                 min_value=None,
-                 max_value=None,
-                 normalizer=None,
-                 start_shrinkage_value=None,
-                 verbose=True):
-        self.convergence_treshold = convergence_threshold
-        self.max_iters = max_iters
-        self.start_shrinkage_value = start_shrinkage_value
-        self.convergence_threshold = convergence_threshold
-        self.max_iters = max_iters
-        self.max_rank = max_rank
-        self.n_power_iterations = n_power_iterations
-        self.verbose = verbose
-        self.init_fill_method = init_fill_method
-        self.min_value = min_value
-        self.max_value = max_value
-        self.normalizer = normalizer
+    max_rank: int = None
+    min_value: float = None
+    max_value: float = None
+    normalizer: Any = None
+    n_power_iterations: int = 1
+    start_shrinkage_value: float = None
+    verbose: bool = False
+    init_fill_method: str = "zero"
+    convergence_threshold: float = 0.001
+    max_iters: int = 100
+    shrinkage_values_number: int = 2
 
-    def run(self, X, trial=1):
+    def fit_transform(self, X):
         solver = SoftImpute(convergence_threshold=self.convergence_threshold,
                             max_iters=self.max_iters,
                             max_rank=self.max_rank,
@@ -241,7 +231,7 @@ class SoftImputeWarmStarts(object):
         observed_mask = ~missing_mask
         if not (self.start_shrinkage_value and self.start_shrinkage_value < max_shrinkage_value):
             self.start_shrinkage_value = max_shrinkage_value
-        shrinkage_values = np.exp(np.linspace(start=np.log(self.start_shrinkage_value), stop=np.log(1), num=50))
+        shrinkage_values = np.exp(np.linspace(start=np.log(self.start_shrinkage_value), stop=np.log(1), num=self.shrinkage_values_number))
         solver.shrinkage_value = self.start_shrinkage_value
         X_init = solver.fit_transform(X).copy()
         result = [(self.start_shrinkage_value, X_init)]
@@ -250,17 +240,17 @@ class SoftImputeWarmStarts(object):
             if self.verbose:
                 print("shrinkage value %s" % sv)
             solver = SoftImpute(convergence_threshold=self.convergence_threshold,
-                            max_iters=self.max_iters,
-                            max_rank=self.max_rank,
-                            n_power_iterations=self.n_power_iterations,
-                            min_value=self.min_value,
-                            max_value=self.max_value,
-                            normalizer=self.normalizer,
-                            X_init=X_start,
-                            shrinkage_value = sv,
-                            )
-            X_out = solver.solve(X_start, missing_mask, trial)
-            #TODO project
+                                max_iters=self.max_iters,
+                                max_rank=self.max_rank,
+                                n_power_iterations=self.n_power_iterations,
+                                min_value=self.min_value,
+                                max_value=self.max_value,
+                                normalizer=self.normalizer,
+                                X_init=X_start,
+                                shrinkage_value=sv,
+                                )
+            X_out = solver.solve(X_start, missing_mask)
+            # TODO project
             X_out[observed_mask] = X[observed_mask]
             result.append([sv, X_out])
             X_init = np.copy(X_out)

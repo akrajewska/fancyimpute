@@ -17,7 +17,7 @@ def test_soft_impute_with_low_rank_random_matrix():
 
 def test_soft_impute_warm_starts():
     runner = SoftImputeWarmStarts()
-    runner.run(XY_incomplete)
+    runner.fit_transform(XY_incomplete)
 
 def test_soft_impute_dask():
     solver = SoftImpute()

@@ -4,7 +4,7 @@ from common import reconstruction_error
 from fancyimpute import IterativeSVD
 
 def test_iterative_svd_with_low_rank_random_matrix():
-    solver = IterativeSVD(rank=3)
+    solver = IterativeSVD(rank=3, gradual_rank_increase=False)
     XY_completed = solver.fit_transform(XY_incomplete)
     _, missing_mae = reconstruction_error(
         XY,
